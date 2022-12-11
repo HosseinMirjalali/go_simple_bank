@@ -28,6 +28,12 @@ SET balance = $2
 WHERE id = $1
 RETURNING *;
 
+-- name: PartialUpdateAccount :one
+UPDATE accounts
+SET country_code = $2, currency = $3
+WHERE id = $1
+RETURNING *;
+
 -- name: AddAccountBalance :one
 UPDATE accounts
 SET balance = balance + sqlc.arg(amount)

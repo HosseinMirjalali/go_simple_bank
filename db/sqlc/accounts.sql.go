@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const addAccountBalance = `-- name: AddAccountBalance :one
@@ -131,7 +132,7 @@ func (q *Queries) ListAccounts(ctx context.Context, arg ListAccountsParams) ([]A
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Account
+	items := []Account{}
 	for rows.Next() {
 		var i Account
 		if err := rows.Scan(
@@ -153,6 +154,33 @@ func (q *Queries) ListAccounts(ctx context.Context, arg ListAccountsParams) ([]A
 		return nil, err
 	}
 	return items, nil
+}
+
+const partialUpdateAccount = `-- name: PartialUpdateAccount :one
+UPDATE accounts
+SET country_code = $2, currency = $3
+WHERE id = $1
+RETURNING id, owner, balance, currency, created_at, country_code
+`
+
+type PartialUpdateAccountParams struct {
+	ID          int64         `json:"id"`
+	CountryCode sql.NullInt32 `json:"countryCode"`
+	Currency    string        `json:"currency"`
+}
+
+func (q *Queries) PartialUpdateAccount(ctx context.Context, arg PartialUpdateAccountParams) (Account, error) {
+	row := q.db.QueryRowContext(ctx, partialUpdateAccount, arg.ID, arg.CountryCode, arg.Currency)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.Balance,
+		&i.Currency,
+		&i.CreatedAt,
+		&i.CountryCode,
+	)
+	return i, err
 }
 
 const updateAccount = `-- name: UpdateAccount :one
